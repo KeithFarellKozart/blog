@@ -46,7 +46,7 @@ def login():
      if request.method == "POST":
           username = request.form.get("username")
           password = request.form.get("password")
-
+          print(password)
           error = None
 
           user = User.query.filter(User.username == username).first()
@@ -81,6 +81,8 @@ def load_user() -> None:
 def user(name):
      user = User.query.filter(User.name == name).first()
      return f"<h1>Username is {user.name}"
+
+
 @app.teardown_appcontext
 def shutdown_session(exception=None):
      db_session.remove()
@@ -89,11 +91,17 @@ def shutdown_session(exception=None):
 def create():
      title = request.form.get("title")
      text = request.form.get("text")
-     post = Post(title=title, text=text)
+     user = g.user
+     post = Post(title, text, user.id)
+     print(title)
+     print(text)
+     print(user)
      if text != "" or text is not None:
           db_session.add(post)
-          db_session.commit()
-
+          try:
+               db_session.commit()
+          except:
+               print("help me")
      return redirect(url_for("index"))
 
 @app.route("/edit/<int:id>/", methods=["GET", "POST"])

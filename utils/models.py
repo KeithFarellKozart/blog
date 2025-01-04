@@ -1,5 +1,6 @@
 from os import name
-from sqlalchemy import Column, Integer, String, Text
+from sqlalchemy import Column, Integer, String, Text, ForeignKey
+from sqlalchemy.orm import relationship
 from .database import Base
 
 class User(Base):
@@ -7,7 +8,9 @@ class User(Base):
     id = Column(Integer, primary_key=True)
     username = Column(String(50), unique=True)
     email = Column(String(120), unique=True)
-    password = Column(String(50))
+    password = Column(String(50), nullable=False)
+
+    posts = relationship("Post", back_populates="user")
 
     def __init__(self, username=None, email=None, password=None):
         self.username = username
@@ -23,9 +26,12 @@ class Post(Base):
     id = Column(Integer, primary_key=True)
     title= Column(String(120), nullable=False)
     text = Column(Text())
-    def __unit__(self, title=None, text=None) -> None:
+    author = Column(Integer, ForeignKey(User.id), nullable=True)
+    user = relationship("User", back_populates="posts")
+    def __init__(self, title=None, text=None, author=None) -> None:
         self.title = title
         self.text = text
-
+        self.author = author
+    
     def __repr__(self):
         return f"<Post {self.title!r}>"
