@@ -1,12 +1,17 @@
 from pydoc import text
 from sqlite3 import IntegrityError
-from flask import Flask, redirect, render_template, request, flash, url_for, session, g
+from flask import Flask, redirect, render_template, request, flash, url_for, session, g, send_from_directory
 from utils.database import db_session
 from werkzeug.security import check_password_hash, generate_password_hash
 from utils.models import User, Post
-
+from werkzeug.utils import secure_filename
+import os
+UPLOAD_FOLDER = "/home/bigben1234ohio/blog/media"
+ALLOWED_EXTENSIONS = {"txt", "pdf", "png", "jpg", "jpeg", "gif", "webp"}
 app = Flask(__name__)
 app.secret_key = b'_5#y2L"F4Q8z\n\xec]/'
+app.config["UPLOAD_FOLDER"] = UPLOAD_FOLDER
+
 @app.route("/register/", methods=["GET", "POST"])
 def register():
      if request.method == "POST":
@@ -50,7 +55,7 @@ def login():
           error = None
 
           user = User.query.filter(User.username == username).first()
-          if User is None:
+          if user is None:
                error = "Не существует такого пользователя"
           elif not check_password_hash(user.password, password):
                error ="Неправильный пароль"
@@ -67,7 +72,7 @@ def login():
 def index():
      posts=Post.query.all()
      return render_template("index.html", posts=posts)
-
+@app.route("/upload",methods=["POST"])
 
 @app.before_request
 def load_user() -> None:
@@ -76,11 +81,6 @@ def load_user() -> None:
           g.user = None
      else:
           g.user = User.query.filter(User.id == session["user_id"]).first()
-
-@app.route("/user/<string:name>")
-def user(name):
-     user = User.query.filter(User.name == name).first()
-     return f"<h1>Username is {user.name}"
 
 
 @app.teardown_appcontext
@@ -116,11 +116,51 @@ def edit(id: int):
           db_session.commit()
           return redirect(url_for("index"))    
      return render_template("edit.html", post=post)
+
+@app.route('/user/<string:name>/', methods=["POST", "GET"])
+def profile(name):
+     user = User.query.filter(User.username==name).first()
+     if request.method == "POST":
+          avatar= request.form.get("avatar")
+          user.avatar=avatar
+          db_session.commit()
+          return redirect("profile", name)
+     return render_template("profile.html", user=user)
+
 @app.post("/delete/<int:id>/")
 def delete(id):
      post = Post.query.get(id)
      db_session.delete(post)
      db_session.commit()
      return redirect(url_for("index"))
-
-
+def allowed_file(filename):
+     return "." in filename and filename.rsplit(".", 1)[1].lower() in ALLOWED_EXTENSIONS
+@app.route("/upload/", methods=['GET', 'POST'])
+def upload_file():
+    if request.method == 'POST':
+        # check if the post request has the file part
+        if 'file' not in request.files:
+            flash('No file part')
+            return redirect(request.url)
+        file = request.files['file']
+        # If the user does not select a file, the browser submits an
+        # empty file without a filename.
+        if file.filename == '':
+            flash('No selected file')
+            return redirect(request.url)
+        if file and allowed_file(file.filename):
+            filename = secure_filename(file.filename)
+            file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
+            return redirect(url_for('download_file', name=filename))
+    return '''
+    <!doctype html>
+    <title>Upload new File</title>
+    <h1>Upload new File</h1>
+    <form method=post enctype=multipart/form-data>
+      <input type=file name=file>
+      <input type=submit value=Upload>
+    </form>
+    '''
+@app.route("/uploads/<name>")
+def download_file(name):
+     return send_from_directory(app.config["UPLOAD_FOLDER"], name)

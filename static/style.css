@@ -1,0 +1,9 @@
+h1{
+    color:red;
+}
+pre{
+    color:darkturquoise;
+    background-color: blue;
+    height: 30px;
+    width: 300px;
+}

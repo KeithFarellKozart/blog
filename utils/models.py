@@ -9,6 +9,7 @@ class User(Base):
     username = Column(String(50), unique=True)
     email = Column(String(120), unique=True)
     password = Column(String(50), nullable=False)
+    avatar = Column(String(120), nullable=True)
 
     posts = relationship("Post", back_populates="user")
 
